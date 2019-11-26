@@ -23,7 +23,7 @@ AppAsset::register($this);
 <!DOCTYPE HTML>
 <html>
 <head>
-    <title>Voguish a Blogging Category Flat Bootstarp Responsive Website Template | Blog :: w3layouts</title>
+    <title>Конвертер курса валюты</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="keywords" content="Voguish Responsive web template, Bootstrap Web Templates, Flat Web Templates, Andriod Compatible web template,
