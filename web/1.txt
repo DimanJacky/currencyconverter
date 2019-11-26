@@ -1,0 +1,61 @@
+If you specify an ON DUPLICATE KEY UPDATE clause and a row to be inserted would cause a duplicate value in a UNIQUE index or PRIMARY KEY, an UPDATE of the old row occurs. For example, if column a is declared as UNIQUE and contains the value 1, the following two statements have similar effect:
+
+INSERT INTO t1 (a,b,c) VALUES (1,2,3)
+  ON DUPLICATE KEY UPDATE c=c+1;
+
+UPDATE t1 SET c=c+1 WHERE a=1;
+(The effects are not identical for an InnoDB table where a is an auto-increment column. With an auto-increment column, an INSERT statement increases the auto-increment value but UPDATE does not.)
+
+If column b is also unique, the INSERT is equivalent to this UPDATE statement instead:
+
+UPDATE t1 SET c=c+1 WHERE a=1 OR b=2 LIMIT 1;
+If a=1 OR b=2 matches several rows, only one row is updated. In general, you should try to avoid using an ON DUPLICATE KEY UPDATE clause on tables with multiple unique indexes.
+
+With ON DUPLICATE KEY UPDATE, the affected-rows value per row is 1 if the row is inserted as a new row, 2 if an existing row is updated, and 0 if an existing row is set to its current values. If you specify the CLIENT_FOUND_ROWS flag to the mysql_real_connect() C API function when connecting to mysqld, the affected-rows value is 1 (not 0) if an existing row is set to its current values.
+
+If a table contains an AUTO_INCREMENT column and INSERT ... ON DUPLICATE KEY UPDATE inserts or updates a row, the LAST_INSERT_ID() function returns the AUTO_INCREMENT value.
+
+The ON DUPLICATE KEY UPDATE clause can contain multiple column assignments, separated by commas.
+
+In assignment value expressions in the ON DUPLICATE KEY UPDATE clause, you can use the VALUES(col_name) function to refer to column values from the INSERT portion of the INSERT ... ON DUPLICATE KEY UPDATE statement. In other words, VALUES(col_name) in the ON DUPLICATE KEY UPDATE clause refers to the value of col_name that would be inserted, had no duplicate-key conflict occurred. This function is especially useful in multiple-row inserts. The VALUES() function is meaningful only in the ON DUPLICATE KEY UPDATE clause or INSERT statements and returns NULL otherwise. Example:
+
+INSERT INTO t1 (a,b,c) VALUES (1,2,3),(4,5,6)
+  ON DUPLICATE KEY UPDATE c=VALUES(a)+VALUES(b);
+That statement is identical to the following two statements:
+
+INSERT INTO t1 (a,b,c) VALUES (1,2,3)
+  ON DUPLICATE KEY UPDATE c=3;
+INSERT INTO t1 (a,b,c) VALUES (4,5,6)
+  ON DUPLICATE KEY UPDATE c=9;
+For INSERT ... SELECT statements, these rules apply regarding acceptable forms of SELECT query expressions that you can refer to in an ON DUPLICATE KEY UPDATE clause:
+
+References to columns from queries on a single table, which may be a derived table.
+
+References to columns from queries on a join over multiple tables.
+
+References to columns from DISTINCT queries.
+
+References to columns in other tables, as long as the SELECT does not use GROUP BY. One side effect is that you must qualify references to nonunique column names.
+
+References to columns from a UNION are not supported. To work around this restriction, rewrite the UNION as a derived table so that its rows can be treated as a single-table result set. For example, this statement produces an error:
+
+INSERT INTO t1 (a, b)
+  SELECT c, d FROM t2
+  UNION
+  SELECT e, f FROM t3
+ON DUPLICATE KEY UPDATE b = b + c;
+Instead, use an equivalent statement that rewrites the UNION as a derived table:
+
+INSERT INTO t1 (a, b)
+SELECT * FROM
+  (SELECT c, d FROM t2
+   UNION
+   SELECT e, f FROM t3) AS dt
+ON DUPLICATE KEY UPDATE b = b + c;
+The technique of rewriting a query as a derived table also enables references to columns from GROUP BY queries.
+
+Because the results of INSERT ... SELECT statements depend on the ordering of rows from the SELECT and this order cannot always be guaranteed, it is possible when logging INSERT ... SELECT ON DUPLICATE KEY UPDATE statements for the master and the slave to diverge. Thus, INSERT ... SELECT ON DUPLICATE KEY UPDATE statements are flagged as unsafe for statement-based replication. Such statements produce a warning in the error log when using statement-based mode and are written to the binary log using the row-based format when using MIXED mode. An INSERT ... ON DUPLICATE KEY UPDATE statement against a table having more than one unique or primary key is also marked as unsafe. (Bug #11765650, Bug #58637)
+
+See also Section 17.2.1.1, “Advantages and Disadvantages of Statement-Based and Row-Based Replication”.
+
+An INSERT ... ON DUPLICATE KEY UPDATE on a partitioned table using a storage engine such as MyISAM that employs table-level locks locks any partitions of the table in which a partitioning key column is updated. (This does not occur with tables using storage engines such as InnoDB that employ row-level locking.) For more information, see Partitioning and Locking.
