@@ -41,6 +41,7 @@ class CurrencyConverter extends Model
     }
 
     public function convert($fromCurrencyAmount) {
+        $result = $fromCurrencyAmount;
         if ($this->fromCurrencyName != 'RUB') {
             $this->fromCurrencyRate = $this->GetRateFromXML($this->fromCurrencyName);
         } else {
@@ -52,6 +53,7 @@ class CurrencyConverter extends Model
         } else {
             $this->toCurrencyRate = 1;
         }
+
         if ($this->fromCurrencyRate != 0) {
             $result = $fromCurrencyAmount / $this->fromCurrencyRate * $this->toCurrencyRate;
         }
